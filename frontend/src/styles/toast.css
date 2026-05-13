@@ -1,0 +1,137 @@
+/* Toast Notification Styles */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 400px;
+}
+
+.toast {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.3s ease-out;
+  max-width: 100%;
+  word-wrap: break-word;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+}
+
+/* Toast Types */
+.toast-success {
+  border-left: 4px solid #27ae60;
+}
+
+.toast-success .toast-icon {
+  color: #27ae60;
+}
+
+.toast-error {
+  border-left: 4px solid #e74c3c;
+}
+
+.toast-error .toast-icon {
+  color: #e74c3c;
+}
+
+.toast-info {
+  border-left: 4px solid #3498db;
+}
+
+.toast-info .toast-icon {
+  color: #3498db;
+}
+
+.toast-warning {
+  border-left: 4px solid #f39c12;
+}
+
+.toast-warning .toast-icon {
+  color: #f39c12;
+}
+
+.toast-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+}
+
+.toast-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-content h4 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.toast-content p {
+  margin: 0;
+  font-size: 13px;
+  color: #7f8c8d;
+  word-wrap: break-word;
+}
+
+.toast-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #95a5a6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  transition: color 0.3s ease;
+}
+
+.toast-close:hover {
+  color: #7f8c8d;
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .toast-container {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+
+  .toast {
+    max-width: 100%;
+  }
+}
