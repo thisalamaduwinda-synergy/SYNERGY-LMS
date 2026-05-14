@@ -5,6 +5,7 @@ import TopNav from './components/TopNav';
 import Dashboard from './components/Dashboard';
 import Users from './pages/Users';
 import SettingsSection from './components/SettingsSection';
+import SOPTrainings from './components/SOPTrainings';
 import SOPRepository from './components/SOPRepository';
 
 // Placeholder component for pages not yet implemented
@@ -40,7 +41,7 @@ function App() {
         <TopNav userInfo={{ email: 'admin@synergy.com' }} />
         {activeMenu === 'dashboard' && <Dashboard />}
         {activeMenu === 'users' && <Users />}
-        {activeMenu === 'courses' && <PagePlaceholder pageName="SOP Trainings Management" />}
+        {activeMenu === 'courses' && <SOPTrainings />}
         {activeMenu === 'reports' && <PagePlaceholder pageName="Reports & Analytics" />}
         {activeMenu === 'schedule' && <PagePlaceholder pageName="Training Calendar" />}
         {activeMenu === 'documents' && <SOPRepository />}
