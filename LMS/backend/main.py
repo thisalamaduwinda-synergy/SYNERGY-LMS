@@ -16,6 +16,7 @@ app = FastAPI(
     title="Synergy LMS API",
     description="Learning Management System for Synergy Pharmaceuticals",
     version="1.0.0"
+    
 )
 
 # CORS Middleware

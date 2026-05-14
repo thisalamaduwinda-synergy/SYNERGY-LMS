@@ -38,6 +38,21 @@ async def get_monthly_enrollments(db: Session = Depends(get_db)):
 
 @router.get("/popular-courses")
 async def get_popular_courses(db: Session = Depends(get_db)):
-    """Get popular courses"""
+    """Get popular courses with enrollment stats"""
     courses = db.query(Course).filter(Course.is_active == True).limit(5).all()
-    return courses
+    
+    result = []
+    for course in courses:
+        enrolled = len(course.enrollments)
+        completed = len([e for e in course.enrollments if e.status == "completed"])
+        completion = (completed / enrolled * 100) if enrolled > 0 else 0
+        
+        result.append({
+            "id": course.id,
+            "title": course.title,
+            "employees": enrolled,
+            "completion": round(completion, 1),
+            "status": "Active"
+        })
+    
+    return result

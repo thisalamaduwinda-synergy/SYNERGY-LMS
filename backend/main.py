@@ -34,12 +34,14 @@ app.add_middleware(
 )
 
 # Import routes
-from app.routes import notifications, quizzes, sops
+from app.routes import notifications, quizzes, sops, dashboard, courses
 
 # Include routers
 app.include_router(notifications.router)
 app.include_router(quizzes.router)
 app.include_router(sops.router)
+app.include_router(dashboard.router)
+app.include_router(courses.router)
 
 # Root endpoint
 @app.get("/")

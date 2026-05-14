@@ -5,8 +5,9 @@ import TopNav from './components/TopNav';
 import Dashboard from './components/Dashboard';
 import Users from './pages/Users';
 import SettingsSection from './components/SettingsSection';
-import SOPTrainings from './components/SOPTrainings';
 import SOPRepository from './components/SOPRepository';
+import SOPTrainings from './components/SOPTrainings';
+import TrainingCalendar from './components/TrainingCalendar';
 
 // Placeholder component for pages not yet implemented
 const PagePlaceholder = ({ pageName }) => (
@@ -43,7 +44,7 @@ function App() {
         {activeMenu === 'users' && <Users />}
         {activeMenu === 'courses' && <SOPTrainings />}
         {activeMenu === 'reports' && <PagePlaceholder pageName="Reports & Analytics" />}
-        {activeMenu === 'schedule' && <PagePlaceholder pageName="Training Calendar" />}
+        {activeMenu === 'schedule' && <TrainingCalendar />}
         {activeMenu === 'documents' && <SOPRepository />}
         {activeMenu === 'notifications' && <PagePlaceholder pageName="Notifications Center" />}
         {activeMenu === 'settings' && <SettingsSection userId="1" userName="Admin User" />}
