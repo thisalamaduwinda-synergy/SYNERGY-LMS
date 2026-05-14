@@ -16,7 +16,6 @@ app = FastAPI(
     title="Synergy LMS API",
     description="Learning Management System for Synergy Pharmaceuticals",
     version="1.0.0"
-    
 )
 
 # CORS Middleware
@@ -35,10 +34,14 @@ app.add_middleware(
 )
 
 # Import routes
-from app.routes import notifications
+from app.routes import notifications, quizzes, sops, dashboard, courses
 
 # Include routers
 app.include_router(notifications.router)
+app.include_router(quizzes.router)
+app.include_router(sops.router)
+app.include_router(dashboard.router)
+app.include_router(courses.router)
 
 # Root endpoint
 @app.get("/")
