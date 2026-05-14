@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile,
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.models import SOP, Course
-from app.schemas import SOPCreate, SOPResponse
+from app.schemas import GenerateSOPQuestionsRequest, SOPCreate, SOPResponse, UploadQuestionsRequest
 from datetime import datetime
 import os
 
@@ -11,6 +11,34 @@ router = APIRouter(prefix="/api/v1/sops", tags=["sops"])
 UPLOAD_DIR = "uploads/sops"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
+
+
+def _sentence_candidates(text: str) -> list[str]:
+    normalized = " ".join((text or "").split())
+    sentences = []
+    for chunk in normalized.replace("?", ".").replace("!", ".").split("."):
+        sentence = chunk.strip()
+        if len(sentence) > 30:
+            sentences.append(sentence)
+    return sentences
+
+
+def _build_sop_question(sop: SOP, source: str, order: int) -> dict:
+    answer = source.split(",")[0].strip() or sop.title
+    options = [
+        {"option_text": answer, "is_correct": True, "order": 1},
+        {"option_text": "Skip the documented procedure when production is urgent", "is_correct": False, "order": 2},
+        {"option_text": "Complete the activity without recording evidence", "is_correct": False, "order": 3},
+        {"option_text": "Ignore deviations if the final result is acceptable", "is_correct": False, "order": 4},
+    ]
+    return {
+        "question_text": f'According to "{sop.title}", which statement best matches the required procedure?',
+        "question_type": "multiple_choice",
+        "correct_answer": answer,
+        "points": 1.0,
+        "order": order,
+        "options": options,
+    }
 
 
 @router.post("/", response_model=SOPResponse, status_code=status.HTTP_201_CREATED)
@@ -71,6 +99,62 @@ async def upload_sop_file(
         "message": "File uploaded successfully",
         "file_url": sop.file_url,
         "sop_id": sop_id
+    }
+
+
+@router.post("/{sop_id}/questions/generate")
+async def generate_sop_questions(
+    sop_id: int,
+    payload: GenerateSOPQuestionsRequest,
+    db: Session = Depends(get_db)
+):
+    """Generate draft SOP questions from SOP title, description, and content."""
+    sop = db.query(SOP).filter(SOP.id == sop_id).first()
+    if not sop:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="SOP not found"
+        )
+
+    question_count = max(1, min(payload.question_count, 20))
+    source_text = f"{sop.title}. {sop.description or ''}. {sop.content or ''}"
+    candidates = _sentence_candidates(source_text) or [
+        sop.title,
+        sop.description or "required SOP compliance steps",
+        "employee responsibilities and documentation requirements",
+    ]
+
+    questions = [
+        _build_sop_question(sop, candidates[index % len(candidates)], index + 1)
+        for index in range(question_count)
+    ]
+
+    return {
+        "sop_id": sop_id,
+        "difficulty": payload.difficulty,
+        "questions": questions,
+    }
+
+
+@router.post("/{sop_id}/questions/upload", status_code=status.HTTP_201_CREATED)
+async def upload_sop_questions(
+    sop_id: int,
+    payload: UploadQuestionsRequest,
+    db: Session = Depends(get_db)
+):
+    """Accept uploaded SOP questions for validation/import workflows."""
+    sop = db.query(SOP).filter(SOP.id == sop_id).first()
+    if not sop:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="SOP not found"
+        )
+
+    return {
+        "sop_id": sop_id,
+        "uploaded_count": len(payload.questions),
+        "questions": payload.questions,
+        "message": "SOP questions uploaded successfully",
     }
 
 

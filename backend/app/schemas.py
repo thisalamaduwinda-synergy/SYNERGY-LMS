@@ -94,6 +94,14 @@ class QuestionCreate(BaseModel):
 class UploadQuestionsRequest(BaseModel):
     questions: List[QuestionCreate]
 
+class GenerateSOPQuestionsRequest(BaseModel):
+    question_count: int = 5
+    difficulty: str = "medium"
+
+class SOPQuestionsResponse(BaseModel):
+    sop_id: int
+    questions: List[QuestionCreate]
+
 # Authentication
 class Token(BaseModel):
     access_token: str
