@@ -2,12 +2,15 @@ from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from typing import Optional, List
 
-# User Schemas
+# ── User Schemas ──────────────────────────────────────────────────────────────
+
 class UserBase(BaseModel):
     email: EmailStr
     username: str
     full_name: str
     role: str = "employee"
+    department: Optional[str] = None
+    phone: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str
@@ -16,9 +19,12 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     email: Optional[EmailStr] = None
     role: Optional[str] = None
+    department: Optional[str] = None
+    phone: Optional[str] = None
+    password: Optional[str] = None
 
 class UserResponse(UserBase):
-    id: int
+    id: str
     is_active: bool
     is_admin: bool
     created_at: datetime
@@ -26,41 +32,61 @@ class UserResponse(UserBase):
     class Config:
         from_attributes = True
 
-# Course Schemas
+# ── Course / SOP Training Schemas ─────────────────────────────────────────────
+
 class CourseBase(BaseModel):
     title: str
     description: Optional[str] = None
     duration_hours: Optional[int] = None
+    sop_code: Optional[str] = None
+    version: str = "1.0"
+    department: Optional[str] = None
+    owner: Optional[str] = None
+    training_status: str = "Active"   # Active | Draft | Review
+    priority: str = "Mandatory"        # Mandatory | Recommended | Role Based
+    passing_score: float = 70.0
+    due_date: Optional[str] = None
 
 class CourseCreate(CourseBase):
     pass
 
 class CourseResponse(CourseBase):
-    id: int
+    id: str
     is_active: bool
     created_at: datetime
+    updated_at: Optional[datetime] = None
+    enrolled: int = 0
+    completed: int = 0
+    questions: int = 0
 
     class Config:
         from_attributes = True
 
-# SOP Schemas
+# ── SOP Schemas ───────────────────────────────────────────────────────────────
+
 class SOPBase(BaseModel):
     title: str
     description: Optional[str] = None
-    content: str
+    content: Optional[str] = ""
     version: str = "1.0"
 
 class SOPCreate(SOPBase):
-    pass
+    created_by: Optional[str] = None
 
 class SOPResponse(SOPBase):
-    id: int
+    id: str
+    file_url: Optional[str] = None
+    is_active: bool = True
+    course_ids: List[str] = []
+    created_by: Optional[str] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
 
-# Quiz Schemas
+# ── Quiz Schemas ──────────────────────────────────────────────────────────────
+
 class QuizBase(BaseModel):
     title: str
     description: Optional[str] = None
@@ -68,11 +94,11 @@ class QuizBase(BaseModel):
     max_attempts: int = 3
 
 class QuizCreate(QuizBase):
-    course_id: int
+    course_id: str
 
 class QuizResponse(QuizBase):
-    id: int
-    course_id: int
+    id: str
+    course_id: str
     created_at: datetime
 
     class Config:
@@ -99,10 +125,11 @@ class GenerateSOPQuestionsRequest(BaseModel):
     difficulty: str = "medium"
 
 class SOPQuestionsResponse(BaseModel):
-    sop_id: int
+    sop_id: str
     questions: List[QuestionCreate]
 
-# Authentication
+# ── Authentication ─────────────────────────────────────────────────────────────
+
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -110,27 +137,25 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
 
+# ── Notification Schemas ───────────────────────────────────────────────────────
 
-# Notification Schemas
 class NotificationCreate(BaseModel):
-    user_id: int
+    user_id: str
     notification_type: str
     channel: str = "in_app"
     title: str
     message: str
-    related_course_id: Optional[int] = None
-    related_quiz_id: Optional[int] = None
-    related_user_id: Optional[int] = None
+    related_course_id: Optional[str] = None
+    related_quiz_id: Optional[str] = None
+    related_user_id: Optional[str] = None
     action_url: Optional[str] = None
-
 
 class NotificationUpdate(BaseModel):
     is_read: bool
 
-
 class NotificationResponse(BaseModel):
-    id: int
-    user_id: int
+    id: str
+    user_id: str
     notification_type: str
     channel: str
     title: str
@@ -138,13 +163,12 @@ class NotificationResponse(BaseModel):
     is_read: bool
     created_at: datetime
     read_at: Optional[datetime] = None
-    related_course_id: Optional[int] = None
-    related_quiz_id: Optional[int] = None
+    related_course_id: Optional[str] = None
+    related_quiz_id: Optional[str] = None
     action_url: Optional[str] = None
 
     class Config:
         from_attributes = True
-
 
 class NotificationListResponse(BaseModel):
     total: int
