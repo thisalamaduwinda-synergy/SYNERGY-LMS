@@ -72,6 +72,15 @@ const Login = () => {
         <p className="login-footer">
           Synergy Pharmaceuticals &copy; {new Date().getFullYear()}
         </p>
+
+         <p >admin@synergy.com        </p>
+         <p >Admin@123      </p>
+
+         <br></br>
+
+         
+         <p >emp@synergy.com     </p>
+         <p >1234      </p>
       </div>
     </div>
   );
