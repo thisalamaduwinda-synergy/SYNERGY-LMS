@@ -1,48 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Users, BookOpen, TrendingUp, Award, MoreVertical } from 'lucide-react';
 import StatCard from './StatCard';
+import api from '../services/api';
 
 const Dashboard = () => {
-  // Sample data for Monthly Enrollments
-  const monthlyEnrollmentData = [
-    { month: 'Jan', employees: 40 },
-    { month: 'Feb', employees: 50 },
-    { month: 'Mar', employees: 60 },
-    { month: 'Apr', employees: 55 },
-    { month: 'May', employees: 70 },
-    { month: 'Jun', employees: 90 },
-  ];
-
-  // Sample data for Completion Rate Trend
-  const completionTrendData = [
-    { month: 'Jan', rate: 75 },
-    { month: 'Feb', rate: 78 },
-    { month: 'Mar', rate: 80 },
-    { month: 'Apr', rate: 79 },
-    { month: 'May', rate: 82 },
-    { month: 'Jun', rate: 85 },
-  ];
+  const [monthlyEnrollmentData, setMonthlyEnrollmentData] = useState([]);
+  const [completionTrendData, setCompletionTrendData] = useState([]);
 
   const [courses, setCourses] = useState([]);
   const [stats, setStats] = useState({
-    total_students: 1247,
-    active_courses: 38,
-    completion_rate: 87.5,
-    passed_quizzes: 892
+    total_students: 0,
+    active_courses: 0,
+    completion_rate: 0,
+    passed_quizzes: 0
   });
-
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
   const fetchStats = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/v1/dashboard/stats`);
+      const response = await api.get('/api/v1/dashboard/stats');
       setStats({
         total_students: response.data.total_students,
         active_courses: response.data.active_courses,
         completion_rate: response.data.completion_rate,
-        passed_quizzes: response.data.passed_quizzes
+        passed_quizzes: response.data.passed_quizzes,
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -51,58 +32,30 @@ const Dashboard = () => {
 
   const fetchPopularCourses = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/v1/dashboard/popular-courses`);
+      const response = await api.get('/api/v1/dashboard/popular-courses');
       setCourses(response.data);
     } catch (error) {
       console.error('Error fetching popular courses:', error);
-      // Fallback to sample data if API fails
-      setCourses([
-        {
-          id: 1,
-          title: 'Pharmaceutical Quality Control',
-          employees: 156,
-          completion: 87,
-          status: 'Active',
-        },
-        {
-          id: 2,
-          title: 'Clinical Research Fundamentals',
-          employees: 203,
-          completion: 92,
-          status: 'Active',
-        },
-        {
-          id: 3,
-          title: 'Drug Development Process',
-          employees: 178,
-          completion: 79,
-          status: 'Active',
-        },
-        {
-          id: 4,
-          title: 'Regulatory Compliance',
-          employees: 134,
-          completion: 95,
-          status: 'Active',
-        },
-        {
-          id: 5,
-          title: 'Medical Terminology',
-          employees: 245,
-          completion: 88,
-          status: 'Active',
-        },
-      ]);
+    }
+  };
+
+  const fetchMonthlyData = async () => {
+    try {
+      const response = await api.get('/api/v1/dashboard/monthly-enrollments');
+      setMonthlyEnrollmentData(response.data.map((d) => ({ month: d.month, employees: d.students })));
+    } catch (error) {
+      console.error('Error fetching monthly data:', error);
     }
   };
 
   useEffect(() => {
     fetchStats();
     fetchPopularCourses();
+    fetchMonthlyData();
     const interval = setInterval(() => {
       fetchStats();
       fetchPopularCourses();
-    }, 10000); // Poll every 10 seconds
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 

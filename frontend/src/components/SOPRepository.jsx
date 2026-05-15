@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Download, Plus, Eye, Trash2, Search, AlertCircle, CheckCircle } from 'lucide-react';
+import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import '../styles/sop-repository.css';
-
-const API_BASE_URL = 'http://localhost:8000/api/v1';
 
 const buildQuestion = (questionText, correctAnswer, options, order) => ({
   id: `${Date.now()}-${order}-${Math.random().toString(36).slice(2, 8)}`,
@@ -11,47 +11,25 @@ const buildQuestion = (questionText, correctAnswer, options, order) => ({
   correct_answer: correctAnswer,
   points: 1,
   order,
-  options: options.map((option, index) => ({
-    option_text: option,
-    is_correct: option === correctAnswer,
-    order: index + 1,
-  })),
+  options: options.map((opt, i) => ({ option_text: opt, is_correct: opt === correctAnswer, order: i + 1 })),
 });
 
 const pickSentences = (text) =>
-  text
-    .replace(/\s+/g, ' ')
-    .split(/[.!?]/)
-    .map((sentence) => sentence.trim())
-    .filter((sentence) => sentence.length > 30);
+  text.replace(/\s+/g, ' ').split(/[.!?]/).map((s) => s.trim()).filter((s) => s.length > 30);
 
 const generateQuestionsFromSop = (sop, count = 5) => {
   const source = `${sop.title}. ${sop.description || ''}. ${sop.content || ''}`;
   const sentences = pickSentences(source);
-  const fallbackTopics = [
-    sop.title,
-    sop.description || 'the SOP objective',
-    'required compliance steps',
-    'employee responsibilities',
-    'documentation requirements',
-  ];
-
-  return Array.from({ length: count }, (_, index) => {
-    const sentence = sentences[index % Math.max(sentences.length, 1)] || fallbackTopics[index % fallbackTopics.length];
+  const fallback = [sop.title, sop.description || 'the SOP objective', 'compliance steps', 'employee responsibilities', 'documentation requirements'];
+  return Array.from({ length: count }, (_, i) => {
+    const sentence = sentences[i % Math.max(sentences.length, 1)] || fallback[i % fallback.length];
     const keyPhrase = sentence.split(',')[0].replace(/^the\s+/i, '').trim();
-    const correctAnswer = keyPhrase.length > 8 ? keyPhrase : fallbackTopics[index % fallbackTopics.length];
-    const options = [
-      correctAnswer,
-      'Skip documentation until the end of the month',
-      'Perform the task without approval',
-      'Ignore deviations if production is on schedule',
-    ];
-
+    const correct = keyPhrase.length > 8 ? keyPhrase : fallback[i % fallback.length];
     return buildQuestion(
       `According to "${sop.title}", which statement best matches the required procedure?`,
-      correctAnswer,
-      options,
-      index + 1
+      correct,
+      [correct, 'Skip documentation until end of month', 'Perform task without approval', 'Ignore deviations if production is on schedule'],
+      i + 1
     );
   });
 };
@@ -59,38 +37,31 @@ const generateQuestionsFromSop = (sop, count = 5) => {
 const parseUploadedQuestions = (input) => {
   const trimmed = input.trim();
   if (!trimmed) return [];
-
   try {
     const parsed = JSON.parse(trimmed);
     const questions = Array.isArray(parsed) ? parsed : parsed.questions;
     if (Array.isArray(questions)) {
-      return questions.map((question, index) =>
+      return questions.map((q, i) =>
         buildQuestion(
-          question.question_text || question.question || `Uploaded question ${index + 1}`,
-          question.correct_answer || question.answer || '',
-          (question.options || []).map((option) => option.option_text || option),
-          index + 1
+          q.question_text || q.question || `Uploaded question ${i + 1}`,
+          q.correct_answer || q.answer || '',
+          (q.options || []).map((o) => o.option_text || o),
+          i + 1
         )
       );
     }
-  } catch (error) {
-    // Plain text formats are handled below.
-  }
-
-  return trimmed
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line, index) => {
-      const parts = line.split('|').map((part) => part.trim()).filter(Boolean);
-      const questionText = parts[0] || `Uploaded question ${index + 1}`;
-      const correctAnswer = parts[1] || 'Correct answer';
-      const options = parts.length > 2 ? parts.slice(1) : [correctAnswer, 'Option B', 'Option C', 'Option D'];
-      return buildQuestion(questionText, correctAnswer, options, index + 1);
-    });
+  } catch { /* fall through to line parsing */ }
+  return trimmed.split('\n').map((line, i) => {
+    const parts = line.trim().split('|').map((p) => p.trim()).filter(Boolean);
+    const qText = parts[0] || `Question ${i + 1}`;
+    const correct = parts[1] || 'Correct answer';
+    const opts = parts.length > 2 ? parts.slice(1) : [correct, 'Option B', 'Option C', 'Option D'];
+    return buildQuestion(qText, correct, opts, i + 1);
+  }).filter((q) => q.question_text);
 };
 
 const SOPRepository = () => {
+  const { user } = useAuth();
   const [sops, setSops] = useState([]);
   const [filteredSops, setFilteredSops] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -106,160 +77,102 @@ const SOPRepository = () => {
   const [questionPreview, setQuestionPreview] = useState([]);
   const [uploadedQuestionText, setUploadedQuestionText] = useState('');
 
-  const mockSops = [
-    {
-      id: 1,
-      title: 'Quality Control Procedures',
-      description: 'Standard Operating Procedures for Quality Control department',
-      content: 'Quality control samples must be collected at each approved checkpoint. Analysts must document observations immediately, verify equipment calibration, and report any deviation before releasing a batch.',
-      version: '2.1',
-      file_url: '/files/qc_procedures_v2.1.pdf',
-      created_by: 'Admin User',
-      created_at: '2024-01-15',
-      updated_at: '2024-05-10',
-      courses_using: 3,
-      questions: [],
-    },
-    {
-      id: 2,
-      title: 'Pharmaceutical Safety Protocols',
-      description: 'Safety guidelines and protocols for all pharmaceutical operations',
-      content: 'Employees must wear required personal protective equipment before entering controlled areas. Safety incidents must be reported to the supervisor and recorded in the incident log before the end of the shift.',
-      version: '1.8',
-      file_url: '/files/safety_protocols_v1.8.pdf',
-      created_by: 'John Smith',
-      created_at: '2024-02-20',
-      updated_at: '2024-04-15',
-      courses_using: 5,
-      questions: [],
-    },
-    {
-      id: 3,
-      title: 'Laboratory Equipment Maintenance',
-      description: 'Maintenance and care instructions for laboratory equipment',
-      content: 'Laboratory equipment must be cleaned after each use and calibrated according to the maintenance schedule. Maintenance records must include the date, technician, result, and any corrective action.',
-      version: '3.0',
-      file_url: '/files/lab_equipment_v3.0.pdf',
-      created_by: 'Dr. Jane Williams',
-      created_at: '2024-03-10',
-      updated_at: '2024-05-01',
-      courses_using: 2,
-      questions: [],
-    },
-    {
-      id: 4,
-      title: 'Data Management Standards',
-      description: 'Standards for data collection, storage, and management',
-      content: 'Training and production data must be entered into approved systems only. Records must be accurate, attributable, legible, contemporaneous, original, and complete.',
-      version: '1.5',
-      file_url: '/files/data_management_v1.5.pdf',
-      created_by: 'Admin User',
-      created_at: '2024-04-05',
-      updated_at: '2024-05-08',
-      courses_using: 4,
-      questions: [],
-    },
-    {
-      id: 5,
-      title: 'Regulatory Compliance Guide',
-      description: 'Compliance requirements and regulatory guidelines',
-      content: 'Compliance teams must review applicable regulations before approving SOP changes. Employees must complete assigned SOP training and acknowledge understanding before performing regulated tasks.',
-      version: '2.3',
-      file_url: '/files/regulatory_compliance_v2.3.pdf',
-      created_by: 'Compliance Team',
-      created_at: '2024-01-20',
-      updated_at: '2024-05-12',
-      courses_using: 6,
-      questions: [],
-    },
-  ];
-
-  useEffect(() => {
-    setIsLoading(true);
-    const timer = setTimeout(() => {
-      setSops(mockSops);
-      setFilteredSops(mockSops);
-      setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Upload form state
+  const [uploadForm, setUploadForm] = useState({ title: '', description: '', version: '1.0', content: '' });
+  const [uploadFile, setUploadFile] = useState(null);
+  const [isSavingSop, setIsSavingSop] = useState(false);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const syncSopQuestions = (sopId, questions) => {
-    const update = (items) =>
-      items.map((sop) =>
-        sop.id === sopId ? { ...sop, questions: [...(sop.questions || []), ...questions] } : sop
-      );
-    setSops(update);
-    setFilteredSops(update);
-    setSelectedSop((current) =>
-      current?.id === sopId ? { ...current, questions: [...(current.questions || []), ...questions] } : current
+  const fetchSops = async () => {
+    try {
+      setIsLoading(true);
+      const res = await api.get('/api/v1/sops/');
+      setSops(res.data);
+      setFilteredSops(res.data);
+    } catch (err) {
+      console.error('Failed to fetch SOPs:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchSops(); }, []);
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    const q = query.toLowerCase();
+    setFilteredSops(
+      query.trim() === ''
+        ? sops
+        : sops.filter((s) =>
+            s.title?.toLowerCase().includes(q) ||
+            s.description?.toLowerCase().includes(q) ||
+            s.version?.toLowerCase().includes(q)
+          )
     );
   };
 
-  const handleDownload = (sop) => {
-    try {
-      if (!sop.file_url) {
-        showToast('File URL not available', 'error');
-        return;
-      }
-
-      const link = document.createElement('a');
-      link.href = sop.file_url;
-      link.download = `${sop.title.replace(/\s+/g, '_')}_v${sop.version}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      showToast(`Downloaded ${sop.title}`, 'success');
-    } catch (error) {
-      console.error('Download error:', error);
-      showToast('Failed to download SOP', 'error');
-    }
-  };
-
   const handleDelete = async (sop) => {
-    if (!window.confirm(`Are you sure you want to delete "${sop.title}"? This action cannot be undone.`)) {
-      return;
-    }
-
+    if (!window.confirm(`Delete "${sop.title}"? This cannot be undone.`)) return;
     setIsDeleting(sop.id);
     try {
-      const response = await fetch(`${API_BASE_URL}/sops/${sop.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete SOP');
-      }
-
-      setSops(sops.filter((s) => s.id !== sop.id));
-      setFilteredSops(filteredSops.filter((s) => s.id !== sop.id));
-
-      showToast(`"${sop.title}" deleted successfully`, 'success');
-
-      if (showDetailModal && selectedSop?.id === sop.id) {
-        setShowDetailModal(false);
-      }
-    } catch (error) {
-      console.error('Delete error:', error);
-      showToast('Failed to delete SOP. Please try again.', 'error');
+      await api.delete(`/api/v1/sops/${sop.id}`);
+      await fetchSops();
+      showToast(`"${sop.title}" deleted`, 'success');
+      if (showDetailModal && selectedSop?.id === sop.id) setShowDetailModal(false);
+    } catch {
+      showToast('Failed to delete SOP', 'error');
     } finally {
       setIsDeleting(null);
     }
   };
 
-  const handleViewDetails = (sop) => {
-    setSelectedSop(sop);
-    setShowDetailModal(true);
+  const handleDownload = (sop) => {
+    if (!sop.file_url) { showToast('No file attached to this SOP', 'error'); return; }
+    const link = document.createElement('a');
+    link.href = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}${sop.file_url}`;
+    link.download = `${sop.title.replace(/\s+/g, '_')}_v${sop.version}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast(`Downloaded ${sop.title}`, 'success');
+  };
+
+  const handleUploadSop = async () => {
+    if (!uploadForm.title.trim()) { showToast('Title is required', 'error'); return; }
+    setIsSavingSop(true);
+    try {
+      const res = await api.post('/api/v1/sops/', {
+        title: uploadForm.title.trim(),
+        description: uploadForm.description.trim() || null,
+        version: uploadForm.version || '1.0',
+        content: uploadForm.content.trim() || '',
+        created_by: user?.full_name || 'Admin',
+      });
+      const sopId = res.data.id;
+
+      if (uploadFile) {
+        const fd = new FormData();
+        fd.append('file', uploadFile);
+        await api.post(`/api/v1/sops/${sopId}/upload-file`, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
+
+      await fetchSops();
+      showToast('SOP uploaded successfully', 'success');
+      setShowUploadModal(false);
+      setUploadForm({ title: '', description: '', version: '1.0', content: '' });
+      setUploadFile(null);
+    } catch (err) {
+      showToast(err.response?.data?.detail || 'Failed to upload SOP', 'error');
+    } finally {
+      setIsSavingSop(false);
+    }
   };
 
   const handleOpenQuestions = (sop) => {
@@ -271,72 +184,35 @@ const SOPRepository = () => {
   };
 
   const handleGenerateQuestions = async () => {
-    const localQuestions = generateQuestionsFromSop(selectedSop, Number(questionCount));
-    setQuestionPreview(localQuestions);
-
+    const local = generateQuestionsFromSop(selectedSop, Number(questionCount));
+    setQuestionPreview(local);
     try {
-      await fetch(`${API_BASE_URL}/sops/${selectedSop.id}/questions/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question_count: Number(questionCount) }),
-      });
-    } catch (error) {
-      console.info('Backend question generation unavailable; using local generated questions.');
-    }
+      await api.post(`/api/v1/sops/${selectedSop.id}/questions/generate`, { question_count: Number(questionCount) });
+    } catch { /* use local generated */ }
   };
 
   const handleParseUploadedQuestions = () => {
-    const parsedQuestions = parseUploadedQuestions(uploadedQuestionText);
-    if (!parsedQuestions.length) {
-      showToast('Add questions before importing', 'error');
-      return;
-    }
-    setQuestionPreview(parsedQuestions);
+    const parsed = parseUploadedQuestions(uploadedQuestionText);
+    if (!parsed.length) { showToast('Add questions before importing', 'error'); return; }
+    setQuestionPreview(parsed);
   };
 
-  const handleQuestionFileChange = (event) => {
-    const file = event.target.files?.[0];
+  const handleQuestionFileChange = (e) => {
+    const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = () => setUploadedQuestionText(String(reader.result || ''));
     reader.readAsText(file);
   };
 
   const handleSaveQuestions = async () => {
-    if (!questionPreview.length) {
-      showToast('Generate or upload questions first', 'error');
-      return;
-    }
-
-    syncSopQuestions(selectedSop.id, questionPreview);
-
+    if (!questionPreview.length) { showToast('Generate or upload questions first', 'error'); return; }
     try {
-      await fetch(`${API_BASE_URL}/sops/${selectedSop.id}/questions/upload`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questions: questionPreview }),
-      });
-    } catch (error) {
-      console.info('Backend question upload unavailable; saved questions in the current admin session.');
-    }
-
-    showToast(`${questionPreview.length} SOP questions saved`, 'success');
-    setShowQuestionModal(false);
-  };
-
-  const handleSearch = (query) => {
-    setSearchQuery(query);
-    if (query.trim() === '') {
-      setFilteredSops(sops);
-    } else {
-      const filtered = sops.filter(
-        (sop) =>
-          sop.title.toLowerCase().includes(query.toLowerCase()) ||
-          sop.description.toLowerCase().includes(query.toLowerCase()) ||
-          sop.version.toLowerCase().includes(query.toLowerCase())
-      );
-      setFilteredSops(filtered);
+      await api.post(`/api/v1/sops/${selectedSop.id}/questions/upload`, { questions: questionPreview });
+      showToast(`${questionPreview.length} questions saved`, 'success');
+      setShowQuestionModal(false);
+    } catch {
+      showToast('Failed to save questions', 'error');
     }
   };
 
@@ -350,14 +226,14 @@ const SOPRepository = () => {
           </div>
         </div>
       )}
+
       <div className="sop-header">
         <div>
           <h1>SOP Repository</h1>
-          <p>Access and manage SOP documents, auto-generated questions, and uploaded question banks</p>
+          <p>Manage SOP documents, auto-generated questions, and question banks</p>
         </div>
         <button className="btn-upload" onClick={() => setShowUploadModal(true)}>
-          <Plus size={20} />
-          Upload New SOP
+          <Plus size={20} /> Upload New SOP
         </button>
       </div>
 
@@ -378,49 +254,39 @@ const SOPRepository = () => {
         <div className="sop-empty">
           <FileText size={48} />
           <h3>No SOPs Found</h3>
-          <p>{searchQuery ? 'Try adjusting your search query' : 'No SOPs available yet'}</p>
+          <p>{searchQuery ? 'Try adjusting your search query' : 'Upload your first SOP to get started'}</p>
         </div>
       ) : (
         <div className="sop-grid">
           {filteredSops.map((sop) => (
             <div key={sop.id} className="sop-card">
               <div className="sop-card-header">
-                <div className="sop-icon">
-                  <FileText size={32} />
-                </div>
+                <div className="sop-icon"><FileText size={32} /></div>
                 <div className="sop-meta">
                   <span className="sop-version">v{sop.version}</span>
-                  <span className="sop-courses">{sop.courses_using} courses</span>
-                  <span className="sop-courses">{sop.questions?.length || 0} questions</span>
+                  <span className="sop-courses">{sop.course_ids?.length || 0} courses</span>
                 </div>
               </div>
-
               <div className="sop-card-content">
                 <h3 className="sop-title">{sop.title}</h3>
-                <p className="sop-description">{sop.description}</p>
-
+                <p className="sop-description">{sop.description || 'No description'}</p>
                 <div className="sop-details">
                   <div className="detail-item">
                     <span className="detail-label">Created by:</span>
-                    <span className="detail-value">{sop.created_by}</span>
+                    <span className="detail-value">{sop.created_by || 'N/A'}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Last updated:</span>
-                    <span className="detail-value">{sop.updated_at}</span>
+                    <span className="detail-value">
+                      {sop.updated_at ? new Date(sop.updated_at).toLocaleDateString() : 'N/A'}
+                    </span>
                   </div>
                 </div>
               </div>
-
               <div className="sop-card-actions">
-                <button className="btn-action btn-view" onClick={() => handleViewDetails(sop)} title="View Details" disabled={isDeleting === sop.id}>
-                  <Eye size={18} />
-                </button>
-                <button className="btn-action btn-questions" onClick={() => handleOpenQuestions(sop)} title="Manage Questions" disabled={isDeleting === sop.id}>
-                  <Plus size={18} />
-                </button>
-                <button className="btn-action btn-download" onClick={() => handleDownload(sop)} title="Download" disabled={isDeleting === sop.id}>
-                  <Download size={18} />
-                </button>
+                <button className="btn-action btn-view" onClick={() => { setSelectedSop(sop); setShowDetailModal(true); }} title="View" disabled={isDeleting === sop.id}><Eye size={18} /></button>
+                <button className="btn-action btn-questions" onClick={() => handleOpenQuestions(sop)} title="Questions" disabled={isDeleting === sop.id}><Plus size={18} /></button>
+                <button className="btn-action btn-download" onClick={() => handleDownload(sop)} title="Download" disabled={isDeleting === sop.id}><Download size={18} /></button>
                 <button className="btn-action btn-delete" onClick={() => handleDelete(sop)} title="Delete" disabled={isDeleting === sop.id}>
                   {isDeleting === sop.id ? <span className="spinner-small" /> : <Trash2 size={18} />}
                 </button>
@@ -430,97 +296,54 @@ const SOPRepository = () => {
         </div>
       )}
 
+      {/* Detail Modal */}
       {showDetailModal && selectedSop && (
         <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{selectedSop.title}</h2>
-              <button className="modal-close" onClick={() => setShowDetailModal(false)}>x</button>
+              <button className="modal-close" onClick={() => setShowDetailModal(false)}>×</button>
             </div>
-
             <div className="modal-body">
-              <div className="detail-group">
-                <label>Description</label>
-                <p>{selectedSop.description}</p>
-              </div>
-              <div className="detail-group">
-                <label>Version</label>
-                <p>v{selectedSop.version}</p>
-              </div>
-              <div className="detail-group">
-                <label>Saved Questions</label>
-                <p>{selectedSop.questions?.length || 0} questions</p>
-              </div>
-              <div className="detail-group">
-                <label>Created by</label>
-                <p>{selectedSop.created_by}</p>
-              </div>
-              <div className="detail-group">
-                <label>Created Date</label>
-                <p>{selectedSop.created_at}</p>
-              </div>
-              <div className="detail-group">
-                <label>Last Updated</label>
-                <p>{selectedSop.updated_at}</p>
-              </div>
+              <div className="detail-group"><label>Description</label><p>{selectedSop.description || 'N/A'}</p></div>
+              <div className="detail-group"><label>Version</label><p>v{selectedSop.version}</p></div>
+              <div className="detail-group"><label>Content</label><p>{selectedSop.content || 'No content'}</p></div>
+              <div className="detail-group"><label>Created by</label><p>{selectedSop.created_by || 'N/A'}</p></div>
+              <div className="detail-group"><label>Created</label><p>{new Date(selectedSop.created_at).toLocaleDateString()}</p></div>
+              <div className="detail-group"><label>File</label><p>{selectedSop.file_url ? 'Attached' : 'No file'}</p></div>
             </div>
-
             <div className="modal-footer">
-              <button className="btn-upload" onClick={() => handleOpenQuestions(selectedSop)}>
-                <Plus size={18} />
-                Manage Questions
-              </button>
-              <button className="btn-download" onClick={() => handleDownload(selectedSop)}>
-                <Download size={18} />
-                Download SOP
-              </button>
+              <button className="btn-upload" onClick={() => handleOpenQuestions(selectedSop)}><Plus size={18} /> Manage Questions</button>
+              <button className="btn-download" onClick={() => handleDownload(selectedSop)}><Download size={18} /> Download SOP</button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Question Modal */}
       {showQuestionModal && selectedSop && (
         <div className="modal-overlay" onClick={() => setShowQuestionModal(false)}>
           <div className="modal-content question-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>SOP Questions</h2>
-              <button className="modal-close" onClick={() => setShowQuestionModal(false)}>x</button>
+              <h2>SOP Questions — {selectedSop.title}</h2>
+              <button className="modal-close" onClick={() => setShowQuestionModal(false)}>×</button>
             </div>
-
             <div className="modal-body">
-              <div className="question-sop-summary">
-                <span>{selectedSop.title}</span>
-                <strong>{selectedSop.questions?.length || 0} saved</strong>
-              </div>
-
               <div className="question-tabs">
-                <button className={questionMode === 'generate' ? 'active' : ''} onClick={() => setQuestionMode('generate')}>
-                  Auto Generate
-                </button>
-                <button className={questionMode === 'upload' ? 'active' : ''} onClick={() => setQuestionMode('upload')}>
-                  Upload Questions
-                </button>
+                <button className={questionMode === 'generate' ? 'active' : ''} onClick={() => setQuestionMode('generate')}>Auto Generate</button>
+                <button className={questionMode === 'upload' ? 'active' : ''} onClick={() => setQuestionMode('upload')}>Upload Questions</button>
               </div>
-
               {questionMode === 'generate' ? (
                 <div className="question-panel">
                   <div className="detail-group">
                     <label>Number of Questions</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="20"
-                      value={questionCount}
-                      onChange={(event) => setQuestionCount(event.target.value)}
-                    />
+                    <input type="number" min="1" max="20" value={questionCount} onChange={(e) => setQuestionCount(e.target.value)} />
                   </div>
                   <div className="detail-group">
-                    <label>SOP Content Source</label>
-                    <textarea rows="5" value={selectedSop.content || selectedSop.description} readOnly />
+                    <label>SOP Content</label>
+                    <textarea rows="4" value={selectedSop.content || selectedSop.description || ''} readOnly />
                   </div>
-                  <button className="btn-upload question-primary" onClick={handleGenerateQuestions}>
-                    Auto Generate Questions
-                  </button>
+                  <button className="btn-upload question-primary" onClick={handleGenerateQuestions}>Auto Generate Questions</button>
                 </div>
               ) : (
                 <div className="question-panel">
@@ -533,98 +356,73 @@ const SOPRepository = () => {
                   </div>
                   <div className="detail-group">
                     <label>Paste Questions</label>
-                    <textarea
-                      rows="7"
-                      value={uploadedQuestionText}
-                      onChange={(event) => setUploadedQuestionText(event.target.value)}
-                      placeholder="Question text | Correct answer | Option B | Option C | Option D"
-                    />
+                    <textarea rows="6" value={uploadedQuestionText} onChange={(e) => setUploadedQuestionText(e.target.value)} placeholder="Question text | Correct answer | Option B | Option C | Option D" />
                   </div>
-                  <button className="btn-upload question-primary" onClick={handleParseUploadedQuestions}>
-                    Preview Uploaded Questions
-                  </button>
+                  <button className="btn-upload question-primary" onClick={handleParseUploadedQuestions}>Preview Questions</button>
                 </div>
               )}
-
               <div className="question-preview">
                 <div className="question-preview-header">
-                  <h3>Preview</h3>
-                  <span>{questionPreview.length} questions</span>
+                  <h3>Preview</h3><span>{questionPreview.length} questions</span>
                 </div>
                 {questionPreview.length === 0 ? (
                   <p className="question-empty">Generated or uploaded questions will appear here.</p>
                 ) : (
-                  questionPreview.map((question, index) => (
-                    <div className="question-item" key={question.id}>
-                      <strong>{index + 1}. {question.question_text}</strong>
-                      <span>Answer: {question.correct_answer}</span>
+                  questionPreview.map((q, i) => (
+                    <div className="question-item" key={q.id}>
+                      <strong>{i + 1}. {q.question_text}</strong>
+                      <span>Answer: {q.correct_answer}</span>
                     </div>
                   ))
                 )}
               </div>
             </div>
-
             <div className="modal-footer">
-              <button className="btn-upload" onClick={handleSaveQuestions}>
-                Save Questions
-              </button>
-              <button className="btn-close" onClick={() => setShowQuestionModal(false)}>
-                Cancel
-              </button>
+              <button className="btn-upload" onClick={handleSaveQuestions}>Save Questions</button>
+              <button className="btn-close" onClick={() => setShowQuestionModal(false)}>Cancel</button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Upload SOP Modal */}
       {showUploadModal && (
         <div className="modal-overlay" onClick={() => setShowUploadModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Upload New SOP</h2>
-              <button className="modal-close" onClick={() => setShowUploadModal(false)}>x</button>
+              <button className="modal-close" onClick={() => setShowUploadModal(false)}>×</button>
             </div>
-
             <div className="modal-body">
               <div className="detail-group">
                 <label>SOP Title *</label>
-                <input type="text" placeholder="Enter SOP title" />
+                <input type="text" placeholder="Enter SOP title" value={uploadForm.title} onChange={(e) => setUploadForm((f) => ({ ...f, title: e.target.value }))} />
               </div>
-
               <div className="detail-group">
-                <label>Description *</label>
-                <textarea placeholder="Enter SOP description" rows="4"></textarea>
+                <label>Description</label>
+                <textarea placeholder="Enter SOP description" rows="3" value={uploadForm.description} onChange={(e) => setUploadForm((f) => ({ ...f, description: e.target.value }))} />
               </div>
-
               <div className="detail-group">
-                <label>Version *</label>
-                <input type="text" placeholder="e.g., 1.0" defaultValue="1.0" />
+                <label>Content / Procedure Text</label>
+                <textarea placeholder="Paste the SOP procedure text here (used for question generation)" rows="4" value={uploadForm.content} onChange={(e) => setUploadForm((f) => ({ ...f, content: e.target.value }))} />
               </div>
-
               <div className="detail-group">
-                <label>Upload File *</label>
+                <label>Version</label>
+                <input type="text" placeholder="e.g., 1.0" value={uploadForm.version} onChange={(e) => setUploadForm((f) => ({ ...f, version: e.target.value }))} />
+              </div>
+              <div className="detail-group">
+                <label>Upload File (PDF, DOC)</label>
                 <div className="file-upload visible-file-upload">
-                  <input type="file" accept=".pdf,.doc,.docx" />
-                  <p>PDF, DOC, DOCX accepted</p>
-                </div>
-              </div>
-
-              <div className="detail-group">
-                <label>Associated Courses</label>
-                <div className="checkbox-group">
-                  <label><input type="checkbox" />Quality Control Training</label>
-                  <label><input type="checkbox" />Safety Protocols</label>
-                  <label><input type="checkbox" />Lab Equipment Training</label>
+                  <input type="file" accept=".pdf,.doc,.docx" onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
+                  <p>{uploadFile ? uploadFile.name : 'PDF, DOC, DOCX accepted'}</p>
                 </div>
               </div>
             </div>
-
             <div className="modal-footer">
-              <button className="btn-upload" onClick={() => setShowUploadModal(false)}>
-                Upload SOP
+              <button className="btn-upload" onClick={handleUploadSop} disabled={isSavingSop}>
+                {isSavingSop ? 'Uploading...' : 'Upload SOP'}
               </button>
-              <button className="btn-close" onClick={() => setShowUploadModal(false)}>
-                Cancel
-              </button>
+              <button className="btn-close" onClick={() => setShowUploadModal(false)}>Cancel</button>
             </div>
           </div>
         </div>
