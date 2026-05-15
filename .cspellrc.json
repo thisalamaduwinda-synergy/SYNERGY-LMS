@@ -1,0 +1,32 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "trustedhost",
+    "uvicorn",
+    "pydantic",
+    "sqlalchemy",
+    "psycopg2",
+    "alembic",
+    "dotenv",
+    "fastapi",
+    "cors",
+    "bcrypt",
+    "passlib",
+    "jose",
+    "multipart",
+    "Synergy",
+    "LMS",
+    "Pharmaceuticals",
+    "Notifications",
+    "NotificationBell",
+    "ToastNotification",
+    "datetime",
+    "utcnow",
+    "lorem",
+    "ipsum"
+  ],
+  "ignoreWords": [],
+  "dictionaries": [],
+  "overrides": []
+}

@@ -1,32 +1,31 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from app.database import get_db
-from app.models.models import Course, User, QuizAttempt, Enrollment
+from fastapi import APIRouter
+from app.database import courses_col, users_col, quiz_attempts_col, enrollments_col, doc_to_dict
 
 router = APIRouter(prefix="/api/v1/dashboard", tags=["dashboard"])
 
+
 @router.get("/stats")
-async def get_dashboard_stats(db: Session = Depends(get_db)):
-    """Get dashboard statistics"""
-    total_students = db.query(User).filter(User.role == "employee").count()
-    active_courses = db.query(Course).filter(Course.is_active == True).count()
-    total_enrollments = db.query(Enrollment).count()
-    completed_enrollments = db.query(Enrollment).filter(Enrollment.status == "completed").count()
-    
-    completion_rate = (completed_enrollments / total_enrollments * 100) if total_enrollments > 0 else 0
-    
+async def get_dashboard_stats():
+    total_students = users_col.count_documents({"role": "employee"})
+    active_courses = courses_col.count_documents({"is_active": True})
+    total_enrollments = enrollments_col.count_documents({})
+    completed_enrollments = enrollments_col.count_documents({"status": "completed"})
+
+    completion_rate = (
+        (completed_enrollments / total_enrollments * 100) if total_enrollments > 0 else 0
+    )
+
     return {
         "total_students": total_students,
         "active_courses": active_courses,
         "total_enrollments": total_enrollments,
         "completion_rate": round(completion_rate, 1),
-        "passed_quizzes": db.query(QuizAttempt).filter(QuizAttempt.passed == True).count()
+        "passed_quizzes": quiz_attempts_col.count_documents({"passed": True}),
     }
 
+
 @router.get("/monthly-enrollments")
-async def get_monthly_enrollments(db: Session = Depends(get_db)):
-    """Get monthly enrollment data"""
-    # This would typically come from a more complex query
+async def get_monthly_enrollments():
     return [
         {"month": "Jan", "students": 40},
         {"month": "Feb", "students": 50},
@@ -36,8 +35,8 @@ async def get_monthly_enrollments(db: Session = Depends(get_db)):
         {"month": "Jun", "students": 90},
     ]
 
+
 @router.get("/popular-courses")
-async def get_popular_courses(db: Session = Depends(get_db)):
-    """Get popular courses"""
-    courses = db.query(Course).filter(Course.is_active == True).limit(5).all()
-    return courses
+async def get_popular_courses():
+    courses = list(courses_col.find({"is_active": True}).limit(5))
+    return [doc_to_dict(c) for c in courses]

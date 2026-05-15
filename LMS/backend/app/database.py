@@ -1,45 +1,32 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from pymongo import MongoClient
+from bson import ObjectId
 from app.config import settings
 
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from app.config import settings
+client = MongoClient(settings.MONGODB_URI)
+db = client[settings.MONGODB_DB_NAME]
 
-# Create database engine
-# Handle both SQLite and PostgreSQL
-if settings.DATABASE_URL.startswith("sqlite"):
-    engine = create_engine(
-        settings.DATABASE_URL,
-        echo=False,
-        future=True,
-        connect_args={"check_same_thread": False},
-    )
-else:
-    engine = create_engine(
-        settings.DATABASE_URL,
-        echo=False,
-        future=True,
-        pool_pre_ping=True,
-    )
+# Collections
+users_col = db["users"]
+courses_col = db["courses"]
+sops_col = db["sops"]
+quizzes_col = db["quizzes"]
+questions_col = db["questions"]
+question_options_col = db["question_options"]
+quiz_attempts_col = db["quiz_attempts"]
+enrollments_col = db["enrollments"]
+progress_col = db["progress"]
+certificates_col = db["certificates"]
+notifications_col = db["notifications"]
 
-# Create session factory
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine,
-    future=True,
-)
 
-# Base class for models
-Base = declarative_base()
-
-# Dependency to get database session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+def doc_to_dict(doc):
+    """Convert a MongoDB document to a plain dict with string 'id' field."""
+    if doc is None:
+        return None
+    doc = dict(doc)
+    if "_id" in doc:
+        doc["id"] = str(doc.pop("_id"))
+    for key, value in doc.items():
+        if isinstance(value, ObjectId):
+            doc[key] = str(value)
+    return doc

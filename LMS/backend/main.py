@@ -15,9 +15,14 @@ load_dotenv()
 app = FastAPI(
     title="Synergy LMS API",
     description="Learning Management System for Synergy Pharmaceuticals",
-    version="1.0.0"
-    
+    version="1.0.0",
 )
+
+
+@app.on_event("startup")
+def startup_event():
+    from init_db import init_db
+    init_db()
 
 # CORS Middleware
 app.add_middleware(
@@ -35,9 +40,13 @@ app.add_middleware(
 )
 
 # Import routes
-from app.routes import notifications
+from app.routes import notifications, users, courses, quizzes, dashboard
 
 # Include routers
+app.include_router(users.router)
+app.include_router(courses.router)
+app.include_router(quizzes.router)
+app.include_router(dashboard.router)
 app.include_router(notifications.router)
 
 # Root endpoint
