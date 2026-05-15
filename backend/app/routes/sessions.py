@@ -4,7 +4,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from typing import Optional
 from pydantic import BaseModel
-from app.database import training_sessions_col, courses_col, doc_to_dict
+from app.database import training_sessions_col, courses_col, users_col, enrollments_col, doc_to_dict
 
 router = APIRouter(prefix="/api/v1/sessions", tags=["sessions"])
 
@@ -76,7 +76,31 @@ async def create_session(payload: SessionCreate):
 
     result = training_sessions_col.insert_one(doc)
     created = training_sessions_col.find_one({"_id": result.inserted_id})
-    return _enrich(created)
+    session_data = _enrich(created)
+
+    # Notify relevant employees about the new session
+    try:
+        from app.routes.notifications import notify_session_scheduled
+        session_id = session_data["id"]
+
+        if payload.course_id:
+            # Notify only employees enrolled in the linked course
+            enrollments = list(enrollments_col.find({"course_id": payload.course_id}, {"user_id": 1}))
+            user_ids = [e["user_id"] for e in enrollments]
+        else:
+            # Notify all active non-admin employees
+            employees = list(users_col.find({"is_active": True, "role": {"$ne": "admin"}}, {"_id": 1}))
+            user_ids = [str(e["_id"]) for e in employees]
+
+        for uid in user_ids:
+            try:
+                notify_session_scheduled(uid, session_id, payload.title, payload.date, payload.department)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    return session_data
 
 
 @router.get("/")

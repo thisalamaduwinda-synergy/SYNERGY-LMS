@@ -4,6 +4,7 @@ from bson.errors import InvalidId
 from datetime import datetime
 from app.database import enrollments_col, courses_col, users_col, doc_to_dict
 from pydantic import BaseModel
+from app.routes.notifications import notify_course_assigned
 
 router = APIRouter(prefix="/api/v1/enrollments", tags=["enrollments"])
 
@@ -39,7 +40,15 @@ async def enroll(payload: EnrollRequest):
         "completed_at": None,
     }
     result = enrollments_col.insert_one(doc)
-    return doc_to_dict(enrollments_col.find_one({"_id": result.inserted_id}))
+    created = doc_to_dict(enrollments_col.find_one({"_id": result.inserted_id}))
+
+    # Notify the employee they've been assigned to this training
+    try:
+        notify_course_assigned(payload.user_id, payload.course_id, course.get("title", "Training"))
+    except Exception:
+        pass  # Don't fail enrollment if notification fails
+
+    return created
 
 
 # Fixed-segment routes must be declared before /{enrollment_id}
