@@ -10,7 +10,14 @@ import '../styles/sop-trainings.css';
 import '../styles/question-modal.css';
 
 const statusFilters = ['All', 'Active', 'Draft', 'Review'];
-const departments = ['All Departments', 'Quality Control', 'Manufacturing', 'Laboratory', 'Compliance', 'Administration'];
+const departments = [
+  'All Departments', 'Accounts', 'Analytical Development', 'Development Quality Assurance',
+  'EHS', 'Engineering', 'Finance', 'Formulation Development', 'HR & Admin', 'IT',
+  'Microbiology', 'Packaging Development', 'Production',
+  'Production Planning & Inventory Control', 'Purchase & Logistics',
+  'Quality Assurance', 'Quality Control', 'Regulatory Affairs',
+  'Sales & Marketing', 'Strategy Planning', 'Technology Transfer', 'Warehouse',
+];
 
 const getStatusClass = (s) => (s || 'active').toLowerCase().replace(/\s+/g, '-');
 const formatDuration = (h) => !h ? 'N/A' : h >= 1 ? `${h}h` : `${Math.round(h * 60)}m`;
@@ -545,7 +552,7 @@ const SOPTrainings = () => {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    title: '', sop_code: '', department: 'Quality Control',
+    title: '', sop_code: '', department: 'QA',
     duration_hours: '', passing_score: 80, due_date: '',
     priority: 'Mandatory', training_status: 'Draft',
   });
@@ -610,7 +617,7 @@ const SOPTrainings = () => {
       });
       await fetchTrainings();
       setShowCreateModal(false);
-      setFormData({ title: '', sop_code: '', department: 'Quality Control', duration_hours: '', passing_score: 80, due_date: '', priority: 'Mandatory', training_status: 'Draft' });
+      setFormData({ title: '', sop_code: '', department: 'QA', duration_hours: '', passing_score: 80, due_date: '', priority: 'Mandatory', training_status: 'Draft' });
     } catch (err) {
       console.error(err);
     } finally {

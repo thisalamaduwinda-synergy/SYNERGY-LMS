@@ -12,7 +12,14 @@ const DELIVERY_OPTS = ['Classroom', 'Virtual', 'Practical', 'Workshop'];
 const STATUS_OPTS   = ['Draft', 'Confirmed', 'Pending', 'Cancelled'];
 const PRIORITY_OPTS = ['Mandatory', 'Recommended', 'Role Based'];
 const TYPE_OPTS     = ['Compliance', 'SOP', 'Practical', 'Role Based', 'Quality'];
-const DEPARTMENTS   = ['Quality Control', 'Manufacturing', 'Laboratory', 'Compliance', 'Administration', 'Medical Affairs', 'Production', 'General'];
+const DEPARTMENTS = [
+  'Accounts', 'Analytical Development', 'Development Quality Assurance', 'EHS',
+  'Engineering', 'Finance', 'Formulation Development', 'HR & Admin', 'IT',
+  'Microbiology', 'Packaging Development', 'Production',
+  'Production Planning & Inventory Control', 'Purchase & Logistics',
+  'Quality Assurance', 'Quality Control', 'Regulatory Affairs',
+  'Sales & Marketing', 'Strategy Planning', 'Technology Transfer', 'Warehouse',
+];
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAY_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -22,7 +29,7 @@ const cls    = (s) => (s||'').toLowerCase().replace(/\s+/g,'-');
 
 const BLANK = {
   title:'', date: toKey(new Date()), time:'09:00 AM', duration:'2h',
-  department:'Quality Control', trainer:'', location:'', delivery:'Classroom',
+  department:'Quality Assurance', trainer:'', location:'', delivery:'Classroom',
   capacity:30, status:'Draft', priority:'Mandatory', type:'Compliance',
   course_id:'', description:'',
 };

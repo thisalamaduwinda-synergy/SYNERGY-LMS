@@ -8,7 +8,14 @@ import '../styles/users.css';
 
 const ROLES = ['employee', 'instructor', 'admin'];
 const ROLE_TABS = ['All', 'Employee', 'Instructor', 'Admin'];
-const DEPARTMENTS = ['Quality Control', 'Manufacturing', 'Laboratory', 'Compliance', 'Administration'];
+const DEPARTMENTS = [
+  'Accounts', 'Analytical Development', 'Development Quality Assurance', 'EHS',
+  'Engineering', 'Finance', 'Formulation Development', 'HR & Admin', 'IT',
+  'Microbiology', 'Packaging Development', 'Production',
+  'Production Planning & Inventory Control', 'Purchase & Logistics',
+  'Quality Assurance', 'Quality Control', 'Regulatory Affairs',
+  'Sales & Marketing', 'Strategy Planning', 'Technology Transfer', 'Warehouse',
+];
 
 const roleBadge = (role) => {
   if (role === 'admin') return 'badge-admin';
