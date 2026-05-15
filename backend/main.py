@@ -40,7 +40,7 @@ app.add_middleware(
 )
 
 # Import routes
-from app.routes import auth, notifications, quizzes, sops, dashboard, courses, users, enrollments, certificates, reports
+from app.routes import auth, notifications, quizzes, sops, dashboard, courses, users, enrollments, certificates, sessions
 
 # Include routers
 app.include_router(auth.router)
@@ -52,7 +52,7 @@ app.include_router(enrollments.router)
 app.include_router(certificates.router)
 app.include_router(dashboard.router)
 app.include_router(notifications.router)
-app.include_router(reports.router)
+app.include_router(sessions.router)
 
 # Root endpoint
 @app.get("/")

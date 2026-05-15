@@ -17,6 +17,7 @@ enrollments_col = db["enrollments"]
 progress_col = db["progress"]
 certificates_col = db["certificates"]
 notifications_col = db["notifications"]
+training_sessions_col = db["training_sessions"]
 
 
 def doc_to_dict(doc):

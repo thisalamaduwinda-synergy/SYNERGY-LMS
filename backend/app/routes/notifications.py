@@ -254,3 +254,27 @@ def notify_admin_alert(
         channels=["in_app", "email"],
         related_user_id=related_user_id,
     )
+
+
+def notify_sop_uploaded(user_id: str, sop_id: str, sop_title: str):
+    """Notify a user that a new SOP document has been added to the repository."""
+    create_notification(
+        user_id=user_id,
+        notification_type="system",
+        title="New SOP Added to Repository",
+        message=f'A new Standard Operating Procedure has been published: "{sop_title}". Please review it in the SOP Repository.',
+        channels=["in_app"],
+        action_url=f"/sops/{sop_id}",
+    )
+
+
+def notify_session_scheduled(user_id: str, session_id: str, session_title: str, session_date: str, department: str):
+    """Notify a user that a training session has been scheduled."""
+    create_notification(
+        user_id=user_id,
+        notification_type="system",
+        title="Training Session Scheduled",
+        message=f'A new training session has been scheduled: "{session_title}" on {session_date} ({department}). Check the Training Calendar for details.',
+        channels=["in_app"],
+        action_url=f"/sessions/{session_id}",
+    )

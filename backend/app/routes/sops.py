@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, File, UploadFile, Form
 from bson import ObjectId
 from bson.errors import InvalidId
-from app.database import sops_col, courses_col, doc_to_dict
+from app.database import sops_col, courses_col, users_col, doc_to_dict
 from app.schemas import GenerateSOPQuestionsRequest, SOPCreate, SOPResponse, UploadQuestionsRequest
 from datetime import datetime
 import os
@@ -54,7 +54,21 @@ async def create_sop(sop: SOPCreate):
     }
     result = sops_col.insert_one(sop_doc)
     created = sops_col.find_one({"_id": result.inserted_id})
-    return doc_to_dict(created)
+    sop_data = doc_to_dict(created)
+
+    # Notify all active employees about the new SOP
+    try:
+        from app.routes.notifications import notify_sop_uploaded
+        employees = list(users_col.find({"is_active": True, "role": {"$ne": "admin"}}, {"_id": 1}))
+        for emp in employees:
+            try:
+                notify_sop_uploaded(str(emp["_id"]), sop_data["id"], sop.title)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    return sop_data
 
 
 @router.get("/", response_model=list)

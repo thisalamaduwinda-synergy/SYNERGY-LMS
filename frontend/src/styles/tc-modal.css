@@ -1,0 +1,211 @@
+/* ── Training Calendar — Modal, Buttons, Toast extras ───────────────────────── */
+
+/* Toast */
+.tc-toast {
+  padding: 11px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+.tc-toast.success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.tc-toast.error   { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
+
+/* Buttons */
+.tc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.tc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.tc-btn-primary { background: #1e40af; color: #fff; border-color: #1e40af; }
+.tc-btn-primary:hover:not(:disabled) { background: #1e3a8a; }
+
+.tc-btn-ghost { background: #f8fafc; color: #374151; border-color: #d1d5db; }
+.tc-btn-ghost:hover:not(:disabled) { background: #f1f5f9; }
+
+.tc-btn-outline { background: #fff; color: #1e40af; border-color: #1e40af; }
+.tc-btn-outline:hover:not(:disabled) { background: #eff6ff; }
+
+.tc-btn-danger { background: #dc2626; color: #fff; border-color: #dc2626; }
+.tc-btn-danger:hover:not(:disabled) { background: #b91c1c; }
+
+.tc-btn-danger-outline { background: #fff; color: #dc2626; border-color: #fca5a5; }
+.tc-btn-danger-outline:hover:not(:disabled) { background: #fef2f2; }
+
+/* Detail panel actions */
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+/* Mini badge in upcoming list */
+.tc-mini-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tc-mini-badge.confirmed { background: #dcfce7; color: #15803d; }
+.tc-mini-badge.draft     { background: #f1f5f9; color: #64748b; }
+.tc-mini-badge.pending   { background: #fef9c3; color: #92400e; }
+.tc-mini-badge.cancelled { background: #fee2e2; color: #dc2626; }
+
+/* Overlay */
+.tc-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 20px;
+  backdrop-filter: blur(3px);
+}
+
+/* Session form modal */
+.tc-modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.18);
+}
+
+.tc-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, #1e3a8a, #1e40af);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.tc-modal-header h2 { font-size: 16px; font-weight: 700; margin: 0; }
+
+.tc-modal-close {
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  width: 30px; height: 30px;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.tc-modal-close:hover { background: rgba(255,255,255,0.25); }
+
+.tc-modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tc-modal-footer {
+  padding: 14px 24px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+.tc-error-bar {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #dc2626;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+/* Form layout */
+.tc-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.tc-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tc-form-group label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tc-form-group input,
+.tc-form-group select,
+.tc-form-group textarea {
+  padding: 8px 11px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1e293b;
+  background: #fff;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s;
+  resize: vertical;
+}
+
+.tc-form-group input:focus,
+.tc-form-group select:focus,
+.tc-form-group textarea:focus { border-color: #2563eb; }
+
+/* Delete confirm */
+.tc-confirm {
+  background: #fff;
+  border-radius: 14px;
+  padding: 30px 24px;
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.18);
+}
+
+.tc-confirm-icon {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: #fef3c7;
+  color: #d97706;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 14px;
+}
+
+.tc-confirm h3 { font-size: 16px; font-weight: 700; color: #1e293b; margin: 0 0 8px; }
+.tc-confirm p  { font-size: 13px; color: #64748b; margin: 0 0 20px; line-height: 1.5; }
+
+.tc-confirm-actions { display: flex; gap: 10px; justify-content: center; }
+
+@media (max-width: 600px) {
+  .tc-form-row { grid-template-columns: 1fr 1fr; }
+}

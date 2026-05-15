@@ -18,7 +18,7 @@ class UserUpdate(BaseModel):
     role: Optional[str] = None
 
 class UserResponse(UserBase):
-    id: int
+    id: str
     is_active: bool
     is_admin: bool
     created_at: datetime
@@ -36,7 +36,7 @@ class CourseCreate(CourseBase):
     pass
 
 class CourseResponse(CourseBase):
-    id: int
+    id: str
     is_active: bool
     created_at: datetime
 
@@ -54,7 +54,7 @@ class SOPCreate(SOPBase):
     pass
 
 class SOPResponse(SOPBase):
-    id: int
+    id: str
     created_at: datetime
 
     class Config:
@@ -68,11 +68,11 @@ class QuizBase(BaseModel):
     max_attempts: int = 3
 
 class QuizCreate(QuizBase):
-    course_id: int
+    course_id: str
 
 class QuizResponse(QuizBase):
-    id: int
-    course_id: int
+    id: str
+    course_id: str
     created_at: datetime
 
     class Config:
@@ -89,14 +89,14 @@ class TokenData(BaseModel):
 
 # Notification Schemas
 class NotificationCreate(BaseModel):
-    user_id: int
+    user_id: str
     notification_type: str
     channel: str = "in_app"
     title: str
     message: str
-    related_course_id: Optional[int] = None
-    related_quiz_id: Optional[int] = None
-    related_user_id: Optional[int] = None
+    related_course_id: Optional[str] = None
+    related_quiz_id: Optional[str] = None
+    related_user_id: Optional[str] = None
     action_url: Optional[str] = None
 
 
@@ -105,8 +105,8 @@ class NotificationUpdate(BaseModel):
 
 
 class NotificationResponse(BaseModel):
-    id: int
-    user_id: int
+    id: str
+    user_id: str
     notification_type: str
     channel: str
     title: str
@@ -114,8 +114,8 @@ class NotificationResponse(BaseModel):
     is_read: bool
     created_at: datetime
     read_at: Optional[datetime] = None
-    related_course_id: Optional[int] = None
-    related_quiz_id: Optional[int] = None
+    related_course_id: Optional[str] = None
+    related_quiz_id: Optional[str] = None
     action_url: Optional[str] = None
 
     class Config:
