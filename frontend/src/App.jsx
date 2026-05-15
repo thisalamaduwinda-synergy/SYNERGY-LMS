@@ -12,6 +12,7 @@ import SOPRepository from './components/SOPRepository';
 import SOPTrainings from './components/SOPTrainings';
 import TrainingCalendar from './components/TrainingCalendar';
 import UserPortal from './portal/UserPortal';
+import Reports from './pages/Reports';
 
 const PagePlaceholder = ({ pageName }) => (
   <div style={{
@@ -62,7 +63,7 @@ function AppContent() {
         {activeMenu === 'dashboard' && <Dashboard />}
         {activeMenu === 'users' && <Users />}
         {activeMenu === 'courses' && <SOPTrainings />}
-        {activeMenu === 'reports' && <PagePlaceholder pageName="Reports & Analytics" />}
+        {activeMenu === 'reports' && <Reports />}
         {activeMenu === 'schedule' && <TrainingCalendar />}
         {activeMenu === 'documents' && <SOPRepository />}
         {activeMenu === 'notifications' && <Notifications userId={user.id} />}
